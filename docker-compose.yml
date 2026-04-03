@@ -118,9 +118,6 @@ services:
       - ./migration:/app/migration
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      archon-postgrest-proxy:
-        condition: service_started
     restart: unless-stopped
     command:
       [

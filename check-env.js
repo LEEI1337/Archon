@@ -37,7 +37,8 @@ envContent.split('\n').forEach(line => {
 });
 
 // Only check ESSENTIAL variables
-const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
+const isLocalDb = envVars['LOCAL_DB'] === 'true';
+const required = isLocalDb ? [] : ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
 const errors = [];
 
 required.forEach(varName => {
@@ -49,25 +50,35 @@ required.forEach(varName => {
 if (errors.length > 0) {
   console.error('ERROR: Required environment variables missing:');
   errors.forEach(err => console.error(`  - ${err}`));
-  console.error('\nPlease add these to your .env file');
+  if (isLocalDb) {
+    console.error('\nTip: LOCAL_DB=true is set — Supabase credentials are not required.');
+  } else {
+    console.error('\nPlease add these to your .env file, or set LOCAL_DB=true for local database mode.');
+  }
   process.exit(1);
 }
 
-// Validate URL format
-try {
-  new URL(envVars['SUPABASE_URL']);
-} catch (e) {
-  console.error('ERROR: SUPABASE_URL is not a valid URL');
-  console.error(`  Found: ${envVars['SUPABASE_URL']}`);
-  console.error('  Expected format: https://your-project.supabase.co');
-  process.exit(1);
+// Validate URL format (skip for local DB mode)
+if (!isLocalDb) {
+  try {
+    new URL(envVars['SUPABASE_URL']);
+  } catch (e) {
+    console.error('ERROR: SUPABASE_URL is not a valid URL');
+    console.error(`  Found: ${envVars['SUPABASE_URL']}`);
+    console.error('  Expected format: https://your-project.supabase.co');
+    process.exit(1);
+  }
+
+  // Basic validation for service key
+  if (envVars['SUPABASE_SERVICE_KEY'].length < 10) {
+    console.error('ERROR: SUPABASE_SERVICE_KEY appears to be invalid (too short)');
+    console.error('  Please check your Supabase project settings');
+    process.exit(1);
+  }
 }
 
-// Basic validation for service key
-if (envVars['SUPABASE_SERVICE_KEY'].length < 10) {
-  console.error('ERROR: SUPABASE_SERVICE_KEY appears to be invalid (too short)');
-  console.error('  Please check your Supabase project settings');
-  process.exit(1);
+if (isLocalDb) {
+  console.log('✓ Environment configured correctly (local database mode)');
+} else {
+  console.log('✓ Environment configured correctly');
 }
-
-console.log('✓ Environment configured correctly');
