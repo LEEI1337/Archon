@@ -9,6 +9,11 @@ from urllib.parse import urlparse
 
 from jose import jwt
 
+# Local database JWT token signed with PGRST_JWT_SECRET
+# Used as SUPABASE_SERVICE_KEY replacement in LOCAL_DB mode
+# Payload: {"role": "archon", "iss": "supabase"}
+LOCAL_DB_JWT_TOKEN = "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFyY2hvbiIsICJpc3MiOiAic3VwYWJhc2UiLCAiaWF0IjogMTcwMDAwMDAwMCwgImV4cCI6IDE5MDAwMDAwMDB9.fMGxKe1G_SlgZzA5myJAs5NooiRCnm-6MwKo7ob9v5g"
+
 
 class ConfigurationError(Exception):
     """Raised when there's an error in configuration."""
@@ -115,10 +120,6 @@ def validate_supabase_url(url: str, local_db: bool = False) -> bool:
         if local_db and hostname.startswith("archon-"):
             return True
 
-        # Allow HTTP for Docker Compose service names in local database mode
-        if local_db and hostname.startswith("archon-"):
-            return True
-
         # Check if hostname is a private IP address
         try:
             ip = ipaddress.ip_address(hostname)
@@ -166,7 +167,7 @@ def load_environment_config() -> EnvironmentConfig:
         if local_db:
             # Use a JWT-formatted key that supabase-py accepts
             # PostgREST in local mode doesn't verify signatures
-            supabase_service_key = "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFyY2hvbiIsICJpc3MiOiAic3VwYWJhc2UiLCAiaWF0IjogMTcwMDAwMDAwMCwgImV4cCI6IDE5MDAwMDAwMDB9.fMGxKe1G_SlgZzA5myJAs5NooiRCnm-6MwKo7ob9v5g"
+            supabase_service_key = LOCAL_DB_JWT_TOKEN
         else:
             raise ConfigurationError("SUPABASE_SERVICE_KEY environment variable is required (or set LOCAL_DB=true)")
 
