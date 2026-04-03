@@ -373,8 +373,11 @@ async def get_knowledge_item_chunks(source_id: str, domain_filter: str | None = 
         if domain_filter:
             count_query = count_query.ilike("url", f"%{domain_filter}%")
 
-        count_result = count_query.execute()
-        total = count_result.count if hasattr(count_result, "count") else 0
+        try:
+            count_result = count_query.execute()
+            total = count_result.count if hasattr(count_result, "count") and count_result.count is not None else 0
+        except ValueError:
+            total = 0
 
         # Build the main query with pagination
         query = supabase.from_("archon_crawled_pages").select("id, source_id, content, metadata, url")
@@ -514,10 +517,13 @@ async def get_knowledge_item_code_examples(source_id: str, limit: int = 20, offs
         supabase = get_supabase_client()
 
         # First get total count
-        count_result = (
-            supabase.from_("archon_code_examples").select("id", count="exact").eq("source_id", source_id).execute()
-        )
-        total = count_result.count if hasattr(count_result, "count") else 0
+        try:
+            count_result = (
+                supabase.from_("archon_code_examples").select("id", count="exact").eq("source_id", source_id).execute()
+            )
+            total = count_result.count if hasattr(count_result, "count") and count_result.count is not None else 0
+        except ValueError:
+            total = 0
 
         # Get paginated code examples
         result = (

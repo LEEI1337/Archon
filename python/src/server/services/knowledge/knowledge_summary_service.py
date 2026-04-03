@@ -75,8 +75,12 @@ class KnowledgeSummaryService:
                 search_pattern = f"%{search}%"
                 count_query = count_query.or_(f"title.ilike.{search_pattern},summary.ilike.{search_pattern}")
 
-            count_result = count_query.execute()
-            total = count_result.count if hasattr(count_result, "count") else 0
+            try:
+                count_result = count_query.execute()
+                total = count_result.count if hasattr(count_result, "count") and count_result.count is not None else 0
+            except ValueError:
+                # postgrest-py bug: crashes on Content-Range with '*' for empty tables
+                total = 0
 
             # Apply pagination
             start_idx = (page - 1) * per_page
@@ -174,14 +178,18 @@ class KnowledgeSummaryService:
             counts = {}
 
             # For now, use individual queries but optimize later with raw SQL
+            counts = {}
             for source_id in source_ids:
-                result = (
-                    self.supabase.from_("archon_crawled_pages")
-                    .select("id", count="exact")
-                    .eq("source_id", source_id)
-                    .execute()
-                )
-                counts[source_id] = result.count if hasattr(result, "count") else 0
+                try:
+                    result = (
+                        self.supabase.from_("archon_crawled_pages")
+                        .select("id", count="exact")
+                        .eq("source_id", source_id)
+                        .execute()
+                    )
+                    counts[source_id] = result.count if hasattr(result, "count") and result.count is not None else 0
+                except ValueError:
+                    counts[source_id] = 0
 
             return counts
 
@@ -203,14 +211,18 @@ class KnowledgeSummaryService:
             counts = {}
 
             # For now, use individual queries but can optimize with raw SQL later
+            counts = {}
             for source_id in source_ids:
-                result = (
-                    self.supabase.from_("archon_code_examples")
-                    .select("id", count="exact")
-                    .eq("source_id", source_id)
-                    .execute()
-                )
-                counts[source_id] = result.count if hasattr(result, "count") else 0
+                try:
+                    result = (
+                        self.supabase.from_("archon_code_examples")
+                        .select("id", count="exact")
+                        .eq("source_id", source_id)
+                        .execute()
+                    )
+                    counts[source_id] = result.count if hasattr(result, "count") and result.count is not None else 0
+                except ValueError:
+                    counts[source_id] = 0
 
             return counts
 

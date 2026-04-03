@@ -71,8 +71,11 @@ class KnowledgeItemService:
                     f"title.ilike.{search_pattern},summary.ilike.{search_pattern},source_id.ilike.{search_pattern}"
                 )
 
-            count_result = count_query.execute()
-            total = count_result.count if hasattr(count_result, "count") else 0
+            try:
+                count_result = count_query.execute()
+                total = count_result.count if hasattr(count_result, "count") and count_result.count is not None else 0
+            except ValueError:
+                total = 0
 
             # Apply pagination at database level
             start_idx = (page - 1) * per_page
@@ -110,13 +113,20 @@ class KnowledgeItemService:
                 # Get code example counts per source - NO CONTENT, just counts!
                 # Fetch counts individually for each source
                 for source_id in source_ids:
-                    count_result = (
-                        self.supabase.from_("archon_code_examples")
-                        .select("id", count="exact")
-                        .eq("source_id", source_id)
-                        .execute()
-                    )
-                    code_example_counts[source_id] = count_result.count if hasattr(count_result, "count") else 0
+                    try:
+                        count_result = (
+                            self.supabase.from_("archon_code_examples")
+                            .select("id", count="exact")
+                            .eq("source_id", source_id)
+                            .execute()
+                        )
+                        code_example_counts[source_id] = (
+                            count_result.count
+                            if hasattr(count_result, "count") and count_result.count is not None
+                            else 0
+                        )
+                    except ValueError:
+                        code_example_counts[source_id] = 0
 
                 # Ensure all sources have a count (default to 0)
                 for source_id in source_ids:
